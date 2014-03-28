@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     float *u, *v, *w, *up, *up1, *up2, 
           *vp, *vp1, *vp2, *wp, *wp1, *wp2, 
           *us, *us1, *us2, *vs, *vs1, *vs2,
-          *ws, *ws1, *ws2, *initial;
+          *ws, *ws1, *ws2, *initial, *all;
     float c[5][7];
     float *wave;
     float nshot,t0,tt,c0;
@@ -64,28 +64,31 @@ int main(int argc, char **argv)
     fscanf(fin,"dyshot=%d\n",&dyshot);
     fclose(fin);
 
-    u       = (float*)malloc(sizeof(float)*nz*ny*nx);
-    v       = (float*)malloc(sizeof(float)*nz*ny*nx);
-    w       = (float*)malloc(sizeof(float)*nz*ny*nx);
-    up      = (float*)malloc(sizeof(float)*nz*ny*nx);
-    up1     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    up2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vp      = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vp1     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vp2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    wp      = (float*)malloc(sizeof(float)*nz*ny*nx);
-    wp1     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    wp2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    us      = (float*)malloc(sizeof(float)*nz*ny*nx);
-    us1     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    us2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vs      = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vs1     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vs2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    ws      = (float*)malloc(sizeof(float)*nz*ny*nx);
-    ws1     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    ws2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    initial = (float*)malloc(sizeof(float)*nz*ny*nx);
+    int ecount = nx * ny * nz, size = sizeof(float) * nx * ny * nz;
+    all = (float*)malloc(22 * size);
+    u       = all;
+    v       = all + ecount;
+    w       = all + ecount * 2;
+    up      = all + ecount * 3;
+    up1     = all + ecount * 4;
+    up2     = all + ecount * 5;
+    vp      = all + ecount * 6;
+    vp1     = all + ecount * 7;
+    vp2     = all + ecount * 8;
+    wp      = all + ecount * 9;
+    wp1     = all + ecount * 10;
+    wp2     = all + ecount * 11;
+    us      = all + ecount * 12;
+    us1     = all + ecount * 13;
+    us2     = all + ecount * 14;
+    vs      = all + ecount * 15;
+    vs1     = all + ecount * 16;
+    vs2     = all + ecount * 17;
+    ws      = all + ecount * 18;
+    ws1     = all + ecount * 19;
+    ws2     = all + ecount * 20;
+    initial = all + ecount * 21;
+
     wave = (float*)malloc(sizeof(float)*lt);
 
     nshot=nxshot*nyshot;
@@ -130,8 +133,6 @@ int main(int argc, char **argv)
             for(k = 0; k < nx; k++)
                 initial[i * ny * nx + j * nx + k] = 100.0f;
 
-    int size = sizeof(float) * nx * ny * nz;
-
     for(ishot=1;ishot<=nshot;ishot++)
     {
         
@@ -164,32 +165,6 @@ int main(int argc, char **argv)
         memcpy(ws1, initial, size);
         memcpy(ws2, initial, size);
 
-        /*for(i=0;i<nz;i++)
-            for(j=0;j<ny;j++)
-                for(k=0;k<nx;k++)
-                {
-                    u[i*ny*nx+j*nx+k]=100.0f;
-                    v[i*ny*nx+j*nx+k]=100.0f;
-                    w[i*ny*nx+j*nx+k]=100.0f;
-                    up[i*ny*nx+j*nx+k]=0.0f;
-                    up1[i*ny*nx+j*nx+k]=0.0f;
-                    up2[i*ny*nx+j*nx+k]=0.0f;
-                    vp[i*ny*nx+j*nx+k]=100.0f;
-                    vp1[i*ny*nx+j*nx+k]=100.0f;
-                    vp2[i*ny*nx+j*nx+k]=100.0f;
-                    wp[i*ny*nx+j*nx+k]=100.0f;
-                    wp1[i*ny*nx+j*nx+k]=100.0f;
-                    wp2[i*ny*nx+j*nx+k]=100.0f;
-                    us[i*ny*nx+j*nx+k]=100.0f;
-                    us1[i*ny*nx+j*nx+k]=100.0f;
-                    us2[i*ny*nx+j*nx+k]=100.0f;
-                    vs[i*ny*nx+j*nx+k]=100.0f;
-                    vs1[i*ny*nx+j*nx+k]=100.0f;
-                    vs2[i*ny*nx+j*nx+k]=100.0f;
-                    ws[i*ny*nx+j*nx+k]=100.0f;
-                    ws1[i*ny*nx+j*nx+k]=100.0f;
-                    ws2[i*ny*nx+j*nx+k]=100.0f;
-                }//for(k=0;k<nx;k++) end*/
         for(l=1;l<=lt;l++)
         {
            
@@ -363,28 +338,7 @@ int main(int argc, char **argv)
     }//for(ishot=1;ishot<=nshot;ishot++) end
     fclose(fout);
 
-    free(u);
-    free(v);
-    free(w);
-    free(up);
-    free(up1);
-    free(up2);
-    free(vp);
-    free(vp1);
-    free(vp2);
-    free(wp);
-    free(wp1);
-    free(wp2);
-    free(us);
-    free(us1);
-    free(us2);
-    free(vs);
-    free(vs1);
-    free(vs2);
-    free(ws);
-    free(ws1);
-    free(ws2);
-    free(initial);
+    free(all);
     free(wave);
 
     return 0;

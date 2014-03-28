@@ -19,7 +19,6 @@ int main(int argc, char **argv)
     int ishot,ncy_shot,ncx_shot;
     float unit;
     int nxshot,nyshot,dxshot,dyshot;
-    char infile[80],outfile[80],logfile[80],tmp[80];
     FILE  *fin, *fout, *flog;
     struct timeval start,end;
     float all_time;
@@ -31,9 +30,9 @@ int main(int argc, char **argv)
     float c[5][7];
     float *wave;
     float nshot,t0,tt,c0;
-    float dtx,dtz,dtxz,dr1,dr2,dtx4,dtz4,dtxz4;
-    float xmax,px,sx;
-    float vvp2,drd1,drd2,vvs2,tempux2,tempuy2,tempuz2,tempvx2,tempvy2,tempvz2,
+    float dtx,dtz,dr1,dr2;
+    float xmax,px;
+    float vvp2,vvs2,tempux2,tempuy2,tempuz2,tempvx2,tempvy2,tempvz2,
           tempwx2,tempwy2,tempwz2,tempuxz,tempuxy,tempvyz,tempvxy,tempwxz,tempwyz;
     if(argc<4)
     {
@@ -41,23 +40,10 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    strcpy(infile,argv[1]);
-    strcpy(outfile,argv[2]);
-    strcpy(logfile,argv[3]);
-
-    strcpy(tmp,"date ");
-    strncat(tmp, ">> ",3);
-    strncat(tmp, logfile, strlen(logfile));
-    flog = fopen(logfile,"w");
-    fprintf(flog,"------------start time------------\n");
-    fclose(flog);
-    system(tmp);
-    gettimeofday(&start,NULL);
-
-    fin = fopen(infile,"r");
+    fin = fopen(argv[1], "r");
     if(fin == NULL)
     {
-        printf("file %s is  not exist\n",infile);
+        printf("file %s is  not exist\n", argv[1]);
         exit(0);
     }
     fscanf(fin,"nx=%d\n",&nx);
@@ -77,43 +63,6 @@ int main(int argc, char **argv)
     fscanf(fin,"dxshot=%d\n",&dxshot);
     fscanf(fin,"dyshot=%d\n",&dyshot);
     fclose(fin);
-
-    printf("\n--------workload parameter--------\n");
-    printf("nx=%d\n",nx);
-    printf("ny=%d\n",ny);
-    printf("nz=%d\n",nz);
-    printf("lt=%d\n",lt);
-    printf("nedge=%d\n",nedge);
-    printf("ncx_shot1=%d\n",ncx_shot1);
-    printf("ncy_shot1=%d\n",ncy_shot1);
-    printf("ncz_shot=%d\n",ncz_shot);
-    printf("nxshot=%d\n",nxshot);
-    printf("nyshot=%d\n",nyshot);
-    printf("frequency=%f\n",frequency);
-    printf("velmax=%f\n",velmax);
-    printf("dt=%f\n",dt);
-    printf("unit=%f\n",unit);
-    printf("dxshot=%d\n",dxshot);
-    printf("dyshot=%d\n\n",dyshot);
-    flog = fopen(logfile,"a");
-    fprintf(flog,"\n--------workload parameter--------\n");
-    fprintf(flog,"nx=%d\n",nx);
-    fprintf(flog,"ny=%d\n",ny);
-    fprintf(flog,"nz=%d\n",nz);
-    fprintf(flog,"lt=%d\n",lt);
-    fprintf(flog,"nedge=%d\n",nedge);
-    fprintf(flog,"ncx_shot1=%d\n",ncx_shot1);
-    fprintf(flog,"ncy_shot1=%d\n",ncy_shot1);
-    fprintf(flog,"ncz_shot=%d\n",ncz_shot);
-    fprintf(flog,"nxshot=%d\n",nxshot);
-    fprintf(flog,"nyshot=%d\n",nyshot);
-    fprintf(flog,"frequency=%f\n",frequency);
-    fprintf(flog,"velmax=%f\n",velmax);
-    fprintf(flog,"dt=%f\n",dt);
-    fprintf(flog,"unit=%f\n",unit);
-    fprintf(flog,"dxshot=%d\n",dxshot);
-    fprintf(flog,"dyshot=%d\n\n",dyshot);
-    fclose(flog);
 
     u       = (float*)malloc(sizeof(float)*nz*ny*nx);
     v       = (float*)malloc(sizeof(float)*nz*ny*nx);
@@ -198,23 +147,15 @@ int main(int argc, char **argv)
 
     dtx=dt/unit;
     dtz=dt/unit;
-    dtxz=dtx*dtz;
 
     dr1=dtx*dtx/2.;
     dr2=dtz*dtz/2.;
 
-    dtx4=dtx*dtx*dtx*dtx;
-    dtz4=dtz*dtz*dtz*dtz;
-    dtxz4=dtx*dtx*dtz*dtz;
-
-    fout=fopen(outfile,"wb");
+    fout=fopen(argv[2],"wb");
     for(ishot=1;ishot<=nshot;ishot++)
     {
         
         printf("shot=%d\n",ishot);
-	flog = fopen(logfile,"a");
-        fprintf(flog,"shot=%d\n",ishot);
-	fclose(flog);
         ncy_shot=ncy_shot1+(ishot/nxshot)*dyshot;
         ncx_shot=ncx_shot1+(ishot%nxshot)*dxshot;
 /*
@@ -275,22 +216,15 @@ int main(int argc, char **argv)
                     {
                         if(i==ncx_shot-1&&j==ncy_shot-1&&k==ncz_shot-1)
                         {
-                        // printf("yes");
                             px=1.;
-                            sx=0.;
                         }
                         else
                         {
                             px=0.;
-                            sx=0.;
                         }
                         vvp2=vpp[k*ny*nx+j*nx+i]*vpp[k*ny*nx+j*nx+i];
-                        drd1=dr1*vvp2;
-                        drd2=dr2*vvp2;
 
                         vvs2=vss[k*ny*nx+j*nx+i]*vss[k*ny*nx+j*nx+i];
-                        drd1=dr1*vvs2;
-                        drd2=dr2*vvs2;
 
                         tempux2=0.0f;
                         tempuy2=0.0f;
@@ -454,15 +388,5 @@ int main(int argc, char **argv)
     free(vss);
     free(wave);
 
-    gettimeofday(&end,NULL);
-    all_time = (end.tv_sec-start.tv_sec)+(float)(end.tv_usec-start.tv_usec)/1000000.0;
-    printf("run time:\t%f s\n",all_time);
-    flog = fopen(logfile,"a");
-    fprintf(flog,"\nrun time:\t%f s\n\n",all_time);
-    fclose(flog);
-    flog = fopen(logfile,"a");
-    fprintf(flog,"------------end time------------\n");
-    fclose(flog);
-    system(tmp);
     return 1;
 }

@@ -330,28 +330,27 @@ int main(int argc, char **argv)
                 for(j=nfront;j<nback;j++)
                     for(i=nleft;i<nright;i++)
                     {
-                       
                         u[k*ny*nx+j*nx+i]=up[k*ny*nx+j*nx+i]+us[k*ny*nx+j*nx+i];
                         v[k*ny*nx+j*nx+i]=vp[k*ny*nx+j*nx+i]+vs[k*ny*nx+j*nx+i];
                         w[k*ny*nx+j*nx+i]=wp[k*ny*nx+j*nx+i]+ws[k*ny*nx+j*nx+i];
 
-                        up2[k*ny*nx+j*nx+i]=up1[k*ny*nx+j*nx+i];
-                        up1[k*ny*nx+j*nx+i]=up[k*ny*nx+j*nx+i];
-                        us2[k*ny*nx+j*nx+i]=us1[k*ny*nx+j*nx+i];
-                        us1[k*ny*nx+j*nx+i]=us[k*ny*nx+j*nx+i];
-                        vp2[k*ny*nx+j*nx+i]=vp1[k*ny*nx+j*nx+i];
-                        vp1[k*ny*nx+j*nx+i]=vp[k*ny*nx+j*nx+i];
-                        vs2[k*ny*nx+j*nx+i]=vs1[k*ny*nx+j*nx+i];
-                        vs1[k*ny*nx+j*nx+i]=vs[k*ny*nx+j*nx+i];
-                        wp2[k*ny*nx+j*nx+i]=wp1[k*ny*nx+j*nx+i];
-                        wp1[k*ny*nx+j*nx+i]=wp[k*ny*nx+j*nx+i];
-                        ws2[k*ny*nx+j*nx+i]=ws1[k*ny*nx+j*nx+i];
-                        ws1[k*ny*nx+j*nx+i]=ws[k*ny*nx+j*nx+i];
                     }//for(i=nleft;i<nright;i++) end
         }//for(l=1;l<=lt;l++) end
-       
+        
+        memcpy(up2, up1, size);
+        memcpy(up1, up, size);
+        memcpy(us2, us1, size);
+        memcpy(us1, us, size);
+        memcpy(vp2, vp1, size);
+        memcpy(vp1, vp, size);
+        memcpy(vs2, vs1, size);
+        memcpy(vs1, vs, size);
+        memcpy(wp2, wp1, size);
+        memcpy(wp1, wp, size);
+        memcpy(ws2, ws1, size);
+        memcpy(ws1, ws, size);
    /*
-  写入文件的数据  
+  写入文件的数据
 */
         for(k=ntop;k<nbottom;k++)
                 for(j=nfront;j<nback;j++)

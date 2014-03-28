@@ -335,20 +335,20 @@ int main(int argc, char **argv)
                         w[k*ny*nx+j*nx+i]=wp[k*ny*nx+j*nx+i]+ws[k*ny*nx+j*nx+i];
 
                     }//for(i=nleft;i<nright;i++) end
+            memcpy(up2, up1, size);
+            memcpy(up1, up, size);
+            memcpy(us2, us1, size);
+            memcpy(us1, us, size);
+            memcpy(vp2, vp1, size);
+            memcpy(vp1, vp, size);
+            memcpy(vs2, vs1, size);
+            memcpy(vs1, vs, size);
+            memcpy(wp2, wp1, size);
+            memcpy(wp1, wp, size);
+            memcpy(ws2, ws1, size);
+            memcpy(ws1, ws, size);
+            
         }//for(l=1;l<=lt;l++) end
-        
-        memcpy(up2, up1, size);
-        memcpy(up1, up, size);
-        memcpy(us2, us1, size);
-        memcpy(us1, us, size);
-        memcpy(vp2, vp1, size);
-        memcpy(vp1, vp, size);
-        memcpy(vs2, vs1, size);
-        memcpy(vs1, vs, size);
-        memcpy(wp2, wp1, size);
-        memcpy(wp1, wp, size);
-        memcpy(ws2, ws1, size);
-        memcpy(ws1, ws, size);
    /*
   写入文件的数据
 */

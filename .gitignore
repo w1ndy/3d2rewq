@@ -1,3 +1,7 @@
+input.in
+*.txt
+*.dat
+*.xcodeproj
 *.out
 *.log
 3d2rewq

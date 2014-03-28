@@ -17,7 +17,7 @@ fi
 echo === COMPILING END ===
 
 echo === EXECUTION START ===
-./3d2rewq data/input_test.in input_test.out input_test.log
+time ./3d2rewq data/input_test.in input_test.out input_test.log
 echo === EXECUTION END ===
 
 echo === DIFF START ===

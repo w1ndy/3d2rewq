@@ -1,0 +1,17 @@
+nx=200
+ny=200
+nz=300
+lt=100
+nedge=50
+ncx_shot1=100
+ncy_shot1=100
+ncz_shot=260
+nxshot=4
+nyshot=5
+frequency=20.0
+velmax=3500.0
+dt=0.001
+unit=10.0
+dxshot=1
+dyshot=1
+

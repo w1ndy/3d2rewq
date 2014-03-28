@@ -9,7 +9,7 @@
 
 int main(int argc, char **argv)
 {
-    int i,j,k,kk,kkk,l,mm=5;
+    int i,j,k,kk,kkk,l;
     int nx,ny,nz,lt,nedge;
     int nleft,nright,nfront,nback,ntop,nbottom;
     float frequency;
@@ -26,12 +26,12 @@ int main(int argc, char **argv)
     float *u, *v, *w, *up, *up1, *up2, 
           *vp, *vp1, *vp2, *wp, *wp1, *wp2, 
           *us, *us1, *us2, *vs, *vs1, *vs2,
-          *ws, *ws1, *ws2, *vpp, *density, *vss;
+          *ws, *ws1, *ws2, *initial;
     float c[5][7];
     float *wave;
     float nshot,t0,tt,c0;
     float dtx,dtz,dr1,dr2;
-    float xmax,px;
+    float xmax;
     float vvp2,vvs2,tempux2,tempuy2,tempuz2,tempvx2,tempvy2,tempvz2,
           tempwx2,tempwy2,tempwz2,tempuxz,tempuxy,tempvyz,tempvxy,tempwxz,tempwyz;
     if(argc<4)
@@ -85,36 +85,11 @@ int main(int argc, char **argv)
     ws      = (float*)malloc(sizeof(float)*nz*ny*nx);
     ws1     = (float*)malloc(sizeof(float)*nz*ny*nx);
     ws2     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vpp     = (float*)malloc(sizeof(float)*nz*ny*nx);
-    density = (float*)malloc(sizeof(float)*nz*ny*nx);
-    vss     = (float*)malloc(sizeof(float)*nz*ny*nx);
+    initial = (float*)malloc(sizeof(float)*nz*ny*nx);
     wave = (float*)malloc(sizeof(float)*lt);
 
     nshot=nxshot*nyshot;
     t0=1.0/frequency;
-    for(i=0;i<nz;i++)
-        for(j=0;j<ny;j++)
-            for(k=0;k<nx;k++)
-            {
-                if(i<210)
-                {
-                    vpp[i*ny*nx+j*nx+k]=2300.;
-                    vss[i*ny*nx+j*nx+k]=1232.;
-                    density[i*ny*nx+j*nx+k]=1.;
-                }
-                else if(i>=210 && i<260)
-                {
-                    vpp[i*ny*nx+j*nx+k]=2800.;
-                    vss[i*ny*nx+j*nx+k]=1509.;
-                    density[i*ny*nx+j*nx+k]=2.;
-                }
-                else
-                {
-                    vpp[i*ny*nx+j*nx+k]=3500.;
-                    vss[i*ny*nx+j*nx+k]=1909.;
-                    density[i*ny*nx+j*nx+k]=2.5;
-                }
-            }
 
     for(l=0;l<lt;l++)
     {
@@ -125,15 +100,12 @@ int main(int argc, char **argv)
         wave[l]=fx;
     }
 
-    if(mm==5)
-    {
-        c0=-2.927222164;
-        c[0][0]=1.66666665;
-        c[1][0]=-0.23809525;
-        c[2][0]=0.03968254;
-        c[3][0]=-0.004960318;
-        c[4][0]=0.0003174603;
-    }
+    c0=-2.927222164;
+    c[0][0]=1.66666665;
+    c[1][0]=-0.23809525;
+    c[2][0]=0.03968254;
+    c[3][0]=-0.004960318;
+    c[4][0]=0.0003174603;
 
     c[0][1]=0.83333;
     c[1][1]=-0.2381;
@@ -152,6 +124,14 @@ int main(int argc, char **argv)
     dr2=dtz*dtz/2.;
 
     fout=fopen(argv[2],"wb");
+
+    for(i = 0; i < nz; i++)
+        for(j = 0; j < ny; j++)
+            for(k = 0; k < nx; k++)
+                initial[i * ny * nx + j * nx + k] = 100.0f;
+
+    int size = sizeof(float) * nx * ny * nz;
+
     for(ishot=1;ishot<=nshot;ishot++)
     {
         
@@ -162,7 +142,29 @@ int main(int argc, char **argv)
 
 此处是初始化参数，以前是0，后来改为100，也可改为其他或者随机赋值 ,up up1 up2可不修改
 */
-        for(i=0;i<nz;i++)
+        memcpy(u, initial, size);
+        memcpy(v, initial, size);
+        memcpy(w, initial, size);
+        memset(up, 0, size);
+        memset(up1, 0, size);
+        memset(up2, 0, size);
+        memcpy(vp, initial, size);
+        memcpy(vp1, initial, size);
+        memcpy(vp2, initial, size);
+        memcpy(wp, initial, size);
+        memcpy(wp1, initial, size);
+        memcpy(wp2, initial, size);
+        memcpy(us, initial, size);
+        memcpy(us1, initial, size);
+        memcpy(us2, initial, size);
+        memcpy(vs, initial, size);
+        memcpy(vs1, initial, size);
+        memcpy(vs2, initial, size);
+        memcpy(ws, initial, size);
+        memcpy(ws1, initial, size);
+        memcpy(ws2, initial, size);
+
+        /*for(i=0;i<nz;i++)
             for(j=0;j<ny;j++)
                 for(k=0;k<nx;k++)
                 {
@@ -187,7 +189,7 @@ int main(int argc, char **argv)
                     ws[i*ny*nx+j*nx+k]=100.0f;
                     ws1[i*ny*nx+j*nx+k]=100.0f;
                     ws2[i*ny*nx+j*nx+k]=100.0f;
-                }//for(k=0;k<nx;k++) end
+                }//for(k=0;k<nx;k++) end*/
         for(l=1;l<=lt;l++)
         {
            
@@ -214,17 +216,16 @@ int main(int argc, char **argv)
                 for(j=nfront;j<nback;j++)
                     for(i=nleft;i<nright;i++)
                     {
-                        if(i==ncx_shot-1&&j==ncy_shot-1&&k==ncz_shot-1)
-                        {
-                            px=1.;
+                        if(k < 210) {
+                            vvp2 = 2300 * 2300;
+                            vvs2 = 1232 * 1232;
+                        } else if(k < 260) {
+                            vvp2 = 2800 * 2800;
+                            vvs2 = 1509 * 1509;
+                        } else {
+                            vvp2 = 3500 * 3500;
+                            vvs2 = 1909 * 1909;
                         }
-                        else
-                        {
-                            px=0.;
-                        }
-                        vvp2=vpp[k*ny*nx+j*nx+i]*vpp[k*ny*nx+j*nx+i];
-
-                        vvs2=vss[k*ny*nx+j*nx+i]*vss[k*ny*nx+j*nx+i];
 
                         tempux2=0.0f;
                         tempuy2=0.0f;
@@ -241,7 +242,7 @@ int main(int argc, char **argv)
                         tempvxy=0.0f;
                         tempwxz=0.0f;
                         tempwyz=0.0f;
-                        for(kk=1;kk<=mm;kk++)
+                        for(kk=1;kk<=5;kk++)
                         {
                             tempux2=tempux2+c[kk-1][0]*(u[k*ny*nx+j*nx+(i+kk)]+u[k*ny*nx+j*nx+(i-kk)]);
                             tempuy2=tempuy2+c[kk-1][0]*(u[k*ny*nx+(j+kk)*nx+i]+u[k*ny*nx+(j-kk)*nx+i]);
@@ -257,7 +258,7 @@ int main(int argc, char **argv)
                             tempwy2=tempwy2+c[kk-1][0]*(w[k*ny*nx+(j+kk)*nx+i]+w[k*ny*nx+(j-kk)*nx+i]);
                             tempwz2=tempwz2+c[kk-1][0]*(w[(k+kk)*ny*nx+j*nx+i]+w[(k-kk)*ny*nx+j*nx+i]);
 
-                        } //for(kk=1;kk<=mm;kk++) end
+                        } //for(kk=1;kk<=5;kk++) end
 
                         tempux2=(tempux2+c0*u[k*ny*nx+j*nx+i])*vvp2*dtx*dtx;
                         tempuy2=(tempuy2+c0*u[k*ny*nx+j*nx+i])*vvs2*dtx*dtx;
@@ -271,9 +272,9 @@ int main(int argc, char **argv)
                         tempwy2=(tempwy2+c0*w[k*ny*nx+j*nx+i])*vvs2*dtx*dtx;
                         tempwz2=(tempwz2+c0*w[k*ny*nx+j*nx+i])*vvp2*dtz*dtz;
 
-                        for(kk=1;kk<=mm;kk++)
+                        for(kk=1;kk<=5;kk++)
                         {
-                            for(kkk=1;kkk<=mm;kkk++)
+                            for(kkk=1;kkk<=5;kkk++)
                             {
                                 tempuxz=tempuxz+c[kkk-1][1+kk]*(u[(k+kkk)*ny*nx+j*nx+(i+kk)]
                                                    -u[(k-kkk)*ny*nx+j*nx+(i+kk)]
@@ -302,8 +303,8 @@ int main(int argc, char **argv)
                                                    +w[(k-kkk)*ny*nx+j*nx+(i-kk)]
                                                    -w[(k+kkk)*ny*nx+j*nx+(i-kk)]);
                                    
-                            } // for(kkk=1;kkk<=mm;kkk++) end
-                        } //for(kk=1;kk<=mm;kk++) end
+                            } // for(kkk=1;kkk<=5;kkk++) end
+                        } //for(kk=1;kk<=5;kk++) end
                          
                         up[k*ny*nx+j*nx+i]=2.*up1[k*ny*nx+j*nx+i]-up2[k*ny*nx+j*nx+i]
                                           +tempux2+tempwxz*vvp2*dtz*dtx
@@ -315,7 +316,7 @@ int main(int argc, char **argv)
                         wp[k*ny*nx+j*nx+i]=2.*wp1[k*ny*nx+j*nx+i]-wp2[k*ny*nx+j*nx+i]
                                           +tempwz2+tempuxz*vvp2*dtz*dtx
                                           +tempvyz*vvp2*dtz*dtx
-                                          +px*wave[l-1];
+                                          +((i == ncx_shot - 1 && j == ncy_shot - 1 && k == ncz_shot - 1) ? wave[l-1] : 0);
                         us[k*ny*nx+j*nx+i]=2.*us1[k*ny*nx+j*nx+i]-us2[k*ny*nx+j*nx+i]+tempuy2+tempuz2
                                           -tempvxy*vvs2*dtz*dtx-tempwxz*vvs2*dtz*dtx;
                         vs[k*ny*nx+j*nx+i]=2.*vs1[k*ny*nx+j*nx+i]-vs2[k*ny*nx+j*nx+i]+tempvx2+tempvz2
@@ -383,10 +384,8 @@ int main(int argc, char **argv)
     free(ws);
     free(ws1);
     free(ws2);
-    free(vpp);
-    free(density);
-    free(vss);
+    free(initial);
     free(wave);
 
-    return 1;
+    return 0;
 }

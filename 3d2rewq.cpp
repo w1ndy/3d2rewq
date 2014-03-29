@@ -23,31 +23,21 @@ void memdup(BYTE *dst, BYTE *src, size_t dst_size, size_t src_size)
 
 int main(int argc, char **argv)
 {
-    int i,j,k,kk,kkk,l;
     int nx,ny,nz,lt,nedge;
-    int nleft,nright,nfront,nback,ntop,nbottom;
     float frequency;
     float velmax;
     float dt;
     int ncx_shot1,ncy_shot1,ncz_shot;
-    int ishot,ncy_shot,ncx_shot;
+    int ishot, nshot;
     float unit;
     int nxshot,nyshot,dxshot,dyshot;
-    FILE  *fin, *fout, *flog;
-    struct timeval start,end;
-    float all_time;
+    FILE  *fin, *fout;
 
-    float *u, *v, *w, *up, *up1, *up2, 
-          *vp, *vp1, *vp2, *wp, *wp1, *wp2, 
-          *us, *us1, *us2, *vs, *vs1, *vs2,
-          *ws, *ws1, *ws2, *initial, *all, *tmp_swap;
+    float *initial, *wave;
     float c[5][7];
-    float *wave;
-    float nshot,t0,tt,c0;
+    float t0,tt,c0;
     float dtx,dtz,dr1,dr2;
-    float xmax;
-    float vvp2,vvs2,tempux2,tempuy2,tempuz2,tempvx2,tempvy2,tempvz2,
-          tempwx2,tempwy2,tempwz2,tempuxz,tempuxy,tempvyz,tempvxy,tempwxz,tempwyz;
+
     if(argc<4)
     {
         printf("please add 3 parameter: inpurfile, outfile, logfile\n");
@@ -86,7 +76,7 @@ int main(int argc, char **argv)
     nshot=nxshot*nyshot;
     t0=1.0/frequency;
 
-    for(l=0;l<lt;l++)
+    for(int l=0;l<lt;l++)
     {
         tt=l*dt;
         tt=tt-t0;
@@ -108,8 +98,8 @@ int main(int argc, char **argv)
     c[3][1]=-0.0099;
     c[4][1]=0.0008;
 
-    for(i=0;i<5;i++)
-        for(j=0;j<5;j++)
+    for(int i=0;i<5;i++)
+        for(int j=0;j<5;j++)
             c[j][2+i]=c[i][1]*c[j][1];
 
     dtx=dt/unit;
@@ -120,15 +110,23 @@ int main(int argc, char **argv)
 
     fout=fopen(argv[2],"wb");
 
-    for(i = 0; i < initial_count; i++)
+    for(int i = 0; i < initial_count; i++)
         initial[i] = 100.0f;
 
+#pragma omp parallel for schedule(static,1) ordered num_threads(4)
     for(ishot=1;ishot<=nshot;ishot++)
     {
+        int nleft,nright,nfront,nback,ntop,nbottom;
+        float *u, *v, *w, *up, *up1, *up2,
+              *vp, *vp1, *vp2, *wp, *wp1, *wp2, 
+              *us, *us1, *us2, *vs, *vs1, *vs2,
+              *ws, *ws1, *ws2, xmax;
+        float vvp2,vvs2,tempux2,tempuy2,tempuz2,tempvx2,tempvy2,tempvz2,
+              tempwx2,tempwy2,tempwz2,tempuxz,tempuxy,tempvyz,tempvxy,tempwxz,tempwyz;
         
         printf("shot=%d\n",ishot);
-        ncy_shot=ncy_shot1+(ishot/nxshot)*dyshot;
-        ncx_shot=ncx_shot1+(ishot%nxshot)*dxshot;
+        int ncy_shot=ncy_shot1+(ishot/nxshot)*dyshot;
+        int ncx_shot=ncx_shot1+(ishot%nxshot)*dxshot;
 /*
 此处是初始化参数，以前是0，后来改为100，也可改为其他或者随机赋值 ,up up1 up2可不修改
 */
@@ -148,7 +146,7 @@ int main(int argc, char **argv)
         int ecount = xwidth * ywidth * zwidth;
         int block_size = sizeof(float) * ecount;
 
-        all = (float*)malloc(21 * block_size);
+        float *all = (float*)malloc(21 * block_size);
         memdup((BYTE *)all, (BYTE *)initial, 21 * block_size, initial_size);
 
         u       = all;
@@ -175,7 +173,7 @@ int main(int argc, char **argv)
 
         memset(up, 0, 3 * block_size);
 
-        for(l=1;l<=lt;l++)
+        for(int l=1;l<=lt;l++)
         {
            
             xmax=l*dt*velmax;
@@ -204,9 +202,9 @@ int main(int argc, char **argv)
             nleft -= left_max - 10;
             nright -= left_max - 10;
 
-            for(k=ntop;k<nbottom;k++)
-                for(j=nfront;j<nback;j++)
-                    for(i=nleft;i<nright;i++)
+            for(int k=ntop;k<nbottom;k++)
+                for(int j=nfront;j<nback;j++)
+                    for(int i=nleft;i<nright;i++)
                     {
                         if(k < 220 - top_max) {
                             vvp2 = 2300 * 2300;
@@ -234,7 +232,7 @@ int main(int argc, char **argv)
                         tempvxy=0.0f;
                         tempwxz=0.0f;
                         tempwyz=0.0f;
-                        for(kk=1;kk<=5;kk++)
+                        for(int kk=1;kk<=5;kk++)
                         {
                             tempux2=tempux2+c[kk-1][0]*(u[k*ywidth*xwidth+j*xwidth+(i+kk)]+u[k*ywidth*xwidth+j*xwidth+(i-kk)]);
                             tempuy2=tempuy2+c[kk-1][0]*(u[k*ywidth*xwidth+(j+kk)*xwidth+i]+u[k*ywidth*xwidth+(j-kk)*xwidth+i]);
@@ -262,9 +260,9 @@ int main(int argc, char **argv)
                         tempwy2=(tempwy2+c0*w[k*ywidth*xwidth+j*xwidth+i])*vvs2*dtx*dtx;
                         tempwz2=(tempwz2+c0*w[k*ywidth*xwidth+j*xwidth+i])*vvp2*dtz*dtz;
 
-                        for(kk=1;kk<=5;kk++)
+                        for(int kk=1;kk<=5;kk++)
                         {
-                            for(kkk=1;kkk<=5;kkk++)
+                            for(int kkk=1;kkk<=5;kkk++)
                             {
                                 tempuxz += c[kkk-1][1+kk]*(u[(k+kkk)*ywidth*xwidth+j*xwidth+(i+kk)]
                                                    -u[(k-kkk)*ywidth*xwidth+j*xwidth+(i+kk)]
@@ -317,9 +315,9 @@ int main(int argc, char **argv)
                     }//for(i=nleft;i<nright;i++) end
 
      
-            for(k=ntop;k<nbottom;k++)
-                for(j=nfront;j<nback;j++)
-                    for(i=nleft;i<nright;i++)
+            for(int k=ntop;k<nbottom;k++)
+                for(int j=nfront;j<nback;j++)
+                    for(int i=nleft;i<nright;i++)
                     {
                         u[k*ywidth*xwidth+j*xwidth+i]=up[k*ywidth*xwidth+j*xwidth+i]+us[k*ywidth*xwidth+j*xwidth+i];
                         v[k*ywidth*xwidth+j*xwidth+i]=vp[k*ywidth*xwidth+j*xwidth+i]+vs[k*ywidth*xwidth+j*xwidth+i];
@@ -340,12 +338,12 @@ int main(int argc, char **argv)
                     }//for(i=nleft;i<nright;i++) end
 
         }//for(l=1;l<=lt;l++) end
-
-        for(k=ntop;k<nbottom;k++)
-                for(j=nfront;j<nback;j++)
-                    for(i=nleft;i<nright;i++){
-                        fwrite(&up[k*ywidth*xwidth+j*xwidth+i], sizeof(float), 1, fout);
-                    }
+#pragma omp ordered
+        {
+            for(int k=ntop;k<nbottom;k++)
+                for(int j=nfront;j<nback;j++)
+                    fwrite(&up[k*ywidth*xwidth+j*xwidth+nleft], sizeof(float), nright - nleft, fout);
+        }
         free(all);
     }//for(ishot=1;ishot<=nshot;ishot++) end
     fclose(fout);

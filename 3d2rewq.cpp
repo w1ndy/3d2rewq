@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     for(int i = 0; i < initial_count; i++)
         initial[i] = 100.0f;
 
-#pragma omp parallel for schedule(static,1) ordered num_threads(4)
+#pragma omp parallel for schedule(static,1) ordered num_threads(NT)
     for(ishot=1;ishot<=nshot;ishot++)
     {
         int nleft,nright,nfront,nback,ntop,nbottom;

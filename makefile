@@ -1,6 +1,6 @@
 CC=g++
 
-FFLAGS= -O3 -fopenmp -march=native
+FFLAGS= -O3 -fopenmp 
 
 all: 3d2rewq.cpp
 	$(CC) $(FFLAGS) 3d2rewq.cpp -o 3d2rewq

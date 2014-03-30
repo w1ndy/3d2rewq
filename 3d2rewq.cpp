@@ -3,7 +3,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <immintrin.h>
 #include "sys/time.h"
 
 #define PIE 3.1415926
@@ -167,7 +166,7 @@ int main(int argc, char **argv)
         }
 
         float *all = (float*)malloc(21 * block_size);
-        float reg2mem[8] __attribute__ ((aligned (32))) = { 0.0f };
+        float preload[16];
         memdup((BYTE *)all, (BYTE *)initial, 21 * block_size, initial_size);
 
         u       = all;
@@ -248,12 +247,12 @@ int main(int argc, char **argv)
                         tempwx2=0.0f;
                         tempwy2=0.0f;
                         tempwz2=0.0f;
-                        /*tempuxz=0.0f;
+                        tempuxz=0.0f;
                         tempuxy=0.0f;
                         tempvyz=0.0f;
                         tempvxy=0.0f;
                         tempwxz=0.0f;
-                        tempwyz=0.0f;*/
+                        tempwyz=0.0f;
                         for(int kk=1;kk<=5;kk++)
                         {
                             tempux2=tempux2+c[kk-1][0]*(u[offset + kk]+u[offset - kk]);
@@ -282,32 +281,11 @@ int main(int argc, char **argv)
                         tempwy2=(tempwy2+c0*w[offset])*vvs2*dtx*dtx;
                         tempwz2=(tempwz2+c0*w[offset])*vvp2*dtz*dtz;
 
-                        __m256 sreg = _mm256_setzero_ps(), creg, dreg;
                         for(int kk=1;kk<=5;kk++)
                         {
                             for(int kkk=1;kkk<=5;kkk++)
                             {
-                                reg2mem[0] = u[offset + cd2[kk][kkk][0]]-u[offset + cd2[kk][kkk][1]]+u[offset + cd2[kk][kkk][2]]-u[offset + cd2[kk][kkk][3]];
-                                reg2mem[1] = u[offset + cd2[kk][kkk][4]]-u[offset + cd2[kk][kkk][5]]+u[offset + cd2[kk][kkk][6]]-u[offset + cd2[kk][kkk][7]];
-                                reg2mem[2] = v[offset + cd2[kk][kkk][8]]-v[offset + cd2[kk][kkk][9]]+v[offset + cd2[kk][kkk][10]]-v[offset + cd2[kk][kkk][11]];
-                                reg2mem[3] = v[offset + cd2[kk][kkk][4]]-v[offset + cd2[kk][kkk][5]]+v[offset + cd2[kk][kkk][6]]-v[offset + cd2[kk][kkk][7]];
-                                reg2mem[4] = w[offset + cd2[kk][kkk][8]]-w[offset + cd2[kk][kkk][9]]+w[offset + cd2[kk][kkk][10]]-w[offset + cd2[kk][kkk][11]];
-                                reg2mem[5] = w[offset + cd2[kk][kkk][0]]-w[offset + cd2[kk][kkk][1]]+w[offset + cd2[kk][kkk][2]]-w[offset + cd2[kk][kkk][3]];
-                                //reg2mem[6] = 0.0f;
-                                //reg2mem[7] = 0.0f;
-
-                                creg = _mm256_broadcast_ss(&c[kkk - 1][1 + kk]);
-                                dreg = _mm256_load_ps(reg2mem);
-                                //dreg = _mm256_set_ps(0.0f,0.0f,
-                                //    u[offset + cd2[kk][kkk][0]]-u[offset + cd2[kk][kkk][1]]+u[offset + cd2[kk][kkk][2]]-u[offset + cd2[kk][kkk][3]],
-                                //    u[offset + cd2[kk][kkk][4]]-u[offset + cd2[kk][kkk][5]]+u[offset + cd2[kk][kkk][6]]-u[offset + cd2[kk][kkk][7]],
-                                //    v[offset + cd2[kk][kkk][8]]-v[offset + cd2[kk][kkk][9]]+v[offset + cd2[kk][kkk][10]]-v[offset + cd2[kk][kkk][11]],
-                                //    v[offset + cd2[kk][kkk][4]]-v[offset + cd2[kk][kkk][5]]+v[offset + cd2[kk][kkk][6]]-v[offset + cd2[kk][kkk][7]],
-                                //    w[offset + cd2[kk][kkk][8]]-w[offset + cd2[kk][kkk][9]]+w[offset + cd2[kk][kkk][10]]-w[offset + cd2[kk][kkk][11]],
-                                //    w[offset + cd2[kk][kkk][0]]-w[offset + cd2[kk][kkk][1]]+w[offset + cd2[kk][kkk][2]]-w[offset + cd2[kk][kkk][3]]);
-                                creg = _mm256_mul_ps(creg, dreg);
-                                sreg = _mm256_add_ps(sreg, creg);
-                                /*tempuxz += c[kkk-1][1+kk]*(u[offset + cd2[kk][kkk][0]]
+                                tempuxz += c[kkk-1][1+kk]*(u[offset + cd2[kk][kkk][0]]
                                                    -u[offset + cd2[kk][kkk][1]]
                                                    +u[offset + cd2[kk][kkk][2]]
                                                    -u[offset + cd2[kk][kkk][3]]);
@@ -332,44 +310,12 @@ int main(int argc, char **argv)
                                 tempwxz += c[kkk-1][1+kk]*(w[offset + cd2[kk][kkk][0]]
                                                    -w[offset + cd2[kk][kkk][1]]
                                                    +w[offset + cd2[kk][kkk][2]]
-                                                   -w[offset + cd2[kk][kkk][3]]);*/
+                                                   -w[offset + cd2[kk][kkk][3]]);
                                    
                             } // for(kkk=1;kkk<=5;kkk++) end
                         } //for(kk=1;kk<=5;kk++) end
-
-                        //sreg = _mm256_mul_ps(sreg, _mm256_broadcast_ss(&dtz));
-                        //sreg = _mm256_mul_ps(sreg, _mm256_broadcast_ss(&dtx));
-
-                        __m256 uvwreg = _mm256_mul_ps(sreg, _mm256_broadcast_ss(&vvp2));
-                        uvwreg = _mm256_mul_ps(uvwreg, _mm256_broadcast_ss(&dtz));
-                        uvwreg = _mm256_mul_ps(uvwreg, _mm256_broadcast_ss(&dtx));
-                        _mm256_store_ps(reg2mem, uvwreg);
-
+                         
                         up[offset]=2.*up1[offset]-up2[offset]
-                                          +tempux2+reg2mem[5]
-                                          +reg2mem[3];
- 
-                        vp[offset]=2.*vp1[offset]-vp2[offset]
-                                          +tempvy2+reg2mem[1]
-                                          +reg2mem[4];
-                        wp[offset]=2.*wp1[offset]-wp2[offset]
-                                          +tempwz2+reg2mem[0]
-                                          +reg2mem[2]
-                                          +((i + left_max - 9 == ncx_shot && j + front_max - 9 == ncy_shot && k + top_max - 9 == ncz_shot) ? wave[l-1] : 0);
-
-                        uvwreg = _mm256_mul_ps(sreg, _mm256_broadcast_ss(&vvs2));
-                        uvwreg = _mm256_mul_ps(uvwreg, _mm256_broadcast_ss(&dtz));
-                        uvwreg = _mm256_mul_ps(uvwreg, _mm256_broadcast_ss(&dtx));
-                        _mm256_store_ps(reg2mem, uvwreg);
-
-                        us[offset]=2.*us1[offset]-us2[offset]+tempuy2+tempuz2
-                                          -reg2mem[3]-reg2mem[5];
-                        vs[offset]=2.*vs1[offset]-vs2[offset]+tempvx2+tempvz2
-                                          -reg2mem[1]-reg2mem[4];
-                        ws[offset]=2.*ws1[offset]-ws2[offset]+tempwx2+tempwy2
-                                          -reg2mem[0]-reg2mem[2];
-
-                        /*up[offset]=2.*up1[offset]-up2[offset]
                                           +tempux2+tempwxz*vvp2*dtz*dtx
                                           +tempvxy*vvp2*dtz*dtx;
  
@@ -385,7 +331,7 @@ int main(int argc, char **argv)
                         vs[offset]=2.*vs1[offset]-vs2[offset]+tempvx2+tempvz2
                                           -tempuxy*vvs2*dtz*dtx-tempwyz*vvs2*dtz*dtx;
                         ws[offset]=2.*ws1[offset]-ws2[offset]+tempwx2+tempwy2
-                                          -tempuxz*vvs2*dtz*dtx-tempvyz*vvs2*dtz*dtx;*/
+                                          -tempuxz*vvs2*dtz*dtx-tempvyz*vvs2*dtz*dtx;
                        
                     }//for(i=nleft;i<nright;i++) end
 

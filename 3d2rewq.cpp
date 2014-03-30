@@ -124,21 +124,18 @@ int main(int argc, char **argv)
         float vvp2,vvs2,tempux2,tempuy2,tempuz2,tempvx2,tempvy2,tempvz2,
               tempwx2,tempwy2,tempwz2,tempuxz,tempuxy,tempvyz,tempvxy,tempwxz,tempwyz;
         
-        printf("shot=%d\n",ishot);
         int ncy_shot=ncy_shot1+(ishot/nxshot)*dyshot;
         int ncx_shot=ncx_shot1+(ishot%nxshot)*dxshot;
-/*
-此处是初始化参数，以前是0，后来改为100，也可改为其他或者随机赋值 ,up up1 up2可不修改
-*/
+        printf("shot=%d,ncx_shot=%d,ncy_shot=%d\n",ishot,ncx_shot,ncy_shot);
 
         // alloc mem:
-        xmax = lt * dt * velmax;
-        int left_max    = ncx_shot - xmax / unit - 10;
-        int right_max   = ncx_shot + xmax / unit + 10;
-        int front_max   = ncy_shot - xmax / unit - 10;
-        int back_max    = ncy_shot + xmax / unit + 10;
-        int top_max     = ncz_shot - xmax / unit - 10;
-        int bottom_max  = ncz_shot + xmax / unit + 10;
+        xmax = lt * dt * velmax / unit;
+        int left_max    = ncx_shot - xmax - 10;
+        int right_max   = ncx_shot + xmax + 10;
+        int front_max   = ncy_shot - xmax - 10;
+        int back_max    = ncy_shot + xmax + 10;
+        int top_max     = ncz_shot - xmax - 10;
+        int bottom_max  = ncz_shot + xmax + 10;
 
         int xwidth = right_max - left_max + 20;
         int ywidth = back_max - front_max + 20;
@@ -147,7 +144,29 @@ int main(int argc, char **argv)
         int xywidth = xwidth * ywidth;
         int block_size = sizeof(float) * ecount;
 
+        int cd1[6][3], cd2[6][6][12];
+        for(int i = 1; i <= 5; i++) {
+            cd1[i][0] = i;
+            cd1[i][1] = i * xwidth;
+            cd1[i][2] = i * xywidth;
+            for(int j = 1; j <= 5; j++) {
+                cd2[i][j][0] = j * xywidth + i;
+                cd2[i][j][1] = - j * xywidth + i;
+                cd2[i][j][2] = - j * xywidth - i;
+                cd2[i][j][3] = j * xywidth - i;
+                cd2[i][j][4] = j * xwidth + i;
+                cd2[i][j][5] = - j * xwidth + i;
+                cd2[i][j][6] = - j * xwidth - i;
+                cd2[i][j][7] = j * xwidth - i;
+                cd2[i][j][8] = j * xywidth + i * xwidth;
+                cd2[i][j][9] = - j * xywidth + i * xwidth;
+                cd2[i][j][10] = - j * xywidth - i * xwidth;
+                cd2[i][j][11] = j * xywidth - i * xwidth;
+            }
+        }
+
         float *all = (float*)malloc(21 * block_size);
+        float preload[16];
         memdup((BYTE *)all, (BYTE *)initial, 21 * block_size, initial_size);
 
         u       = all;
@@ -176,14 +195,14 @@ int main(int argc, char **argv)
 
         for(int l=1;l<=lt;l++)
         {
-           
-            xmax=l*dt*velmax;
-            nleft=ncx_shot-xmax/unit-10;
-            nright=ncx_shot+xmax/unit+10;
-            nfront=ncy_shot-xmax/unit-10;
-            nback=ncy_shot+xmax/unit+10;
-            ntop=ncz_shot-xmax/unit-10;
-            nbottom=ncz_shot+xmax/unit+10;
+            int offset;
+            xmax=l*dt*velmax/unit;
+            nleft=ncx_shot-xmax-10;
+            nright=ncx_shot+xmax+10;
+            nfront=ncy_shot-xmax-10;
+            nback=ncy_shot+xmax+10;
+            ntop=ncz_shot-xmax-10;
+            nbottom=ncz_shot+xmax+10;
             
             if(nleft<5) nleft=5;
             if(nright>nx-5) nright=nx-5;
@@ -207,6 +226,7 @@ int main(int argc, char **argv)
                 for(int j=nfront;j<nback;j++)
                     for(int i=nleft;i<nright;i++)
                     {
+                        offset = k * xywidth + j * xwidth + i;
                         if(k < 220 - top_max) {
                             vvp2 = 2300 * 2300;
                             vvs2 = 1232 * 1232;
@@ -235,82 +255,82 @@ int main(int argc, char **argv)
                         tempwyz=0.0f;
                         for(int kk=1;kk<=5;kk++)
                         {
-                            tempux2=tempux2+c[kk-1][0]*(u[k*xywidth+j*xwidth+(i+kk)]+u[k*xywidth+j*xwidth+(i-kk)]);
-                            tempuy2=tempuy2+c[kk-1][0]*(u[k*xywidth+(j+kk)*xwidth+i]+u[k*xywidth+(j-kk)*xwidth+i]);
-                            tempuz2=tempuz2+c[kk-1][0]*(u[(k+kk)*xywidth+j*xwidth+i]+u[(k -kk)*xywidth+j*xwidth+i]);
+                            tempux2=tempux2+c[kk-1][0]*(u[offset + kk]+u[offset - kk]);
+                            tempuy2=tempuy2+c[kk-1][0]*(u[offset + cd1[kk][1]]+u[offset - cd1[kk][1]]);
+                            tempuz2=tempuz2+c[kk-1][0]*(u[offset + cd1[kk][2]]+u[offset - cd1[kk][2]]);
                            
-                            tempvx2=tempvx2+c[kk-1][0]*(v[k*xywidth+j*xwidth+(i+kk)]+v[k*xywidth+j*xwidth+(i-kk)]);
-                            tempvy2=tempvy2+c[kk-1][0]*(v[k*xywidth+(j+kk)*xwidth+i]+v[k*xywidth+(j-kk)*xwidth+i]);
-                            tempvz2=tempvz2+c[kk-1][0]*(v[(k+kk)*xywidth+j*xwidth+i]+v[(k-kk)*xywidth+j*xwidth+i]);
+                            tempvx2=tempvx2+c[kk-1][0]*(v[offset + kk]+v[offset - kk]);
+                            tempvy2=tempvy2+c[kk-1][0]*(v[offset + cd1[kk][1]]+v[offset - cd1[kk][1]]);
+                            tempvz2=tempvz2+c[kk-1][0]*(v[offset + cd1[kk][2]]+v[offset - cd1[kk][2]]);
 
-                            tempwx2=tempwx2+c[kk-1][0]*(w[k*xywidth+j*xwidth+(i+kk)]+w[k*xywidth+j*xwidth+(i-kk)]);
-                            tempwy2=tempwy2+c[kk-1][0]*(w[k*xywidth+(j+kk)*xwidth+i]+w[k*xywidth+(j-kk)*xwidth+i]);
-                            tempwz2=tempwz2+c[kk-1][0]*(w[(k+kk)*xywidth+j*xwidth+i]+w[(k-kk)*xywidth+j*xwidth+i]);
+                            tempwx2=tempwx2+c[kk-1][0]*(w[offset + kk]+w[offset - kk]);
+                            tempwy2=tempwy2+c[kk-1][0]*(w[offset + cd1[kk][1]]+w[offset - cd1[kk][1]]);
+                            tempwz2=tempwz2+c[kk-1][0]*(w[offset + cd1[kk][2]]+w[offset - cd1[kk][2]]);
 
                         } //for(kk=1;kk<=5;kk++) end
 
-                        tempux2=(tempux2+c0*u[k*xywidth+j*xwidth+i])*vvp2*dtx*dtx;
-                        tempuy2=(tempuy2+c0*u[k*xywidth+j*xwidth+i])*vvs2*dtx*dtx;
-                        tempuz2=(tempuz2+c0*u[k*xywidth+j*xwidth+i])*vvs2*dtz*dtz;
+                        tempux2=(tempux2+c0*u[offset])*vvp2*dtx*dtx;
+                        tempuy2=(tempuy2+c0*u[offset])*vvs2*dtx*dtx;
+                        tempuz2=(tempuz2+c0*u[offset])*vvs2*dtz*dtz;
 
-                        tempvx2=(tempvx2+c0*v[k*xywidth+j*xwidth+i])*vvs2*dtx*dtx;
-                        tempvy2=(tempvy2+c0*v[k*xywidth+j*xwidth+i])*vvp2*dtx*dtx;
-                        tempvz2=(tempvz2+c0*v[k*xywidth+j*xwidth+i])*vvs2*dtz*dtz;
+                        tempvx2=(tempvx2+c0*v[offset])*vvs2*dtx*dtx;
+                        tempvy2=(tempvy2+c0*v[offset])*vvp2*dtx*dtx;
+                        tempvz2=(tempvz2+c0*v[offset])*vvs2*dtz*dtz;
 
-                        tempwx2=(tempwx2+c0*w[k*xywidth+j*xwidth+i])*vvs2*dtx*dtx;
-                        tempwy2=(tempwy2+c0*w[k*xywidth+j*xwidth+i])*vvs2*dtx*dtx;
-                        tempwz2=(tempwz2+c0*w[k*xywidth+j*xwidth+i])*vvp2*dtz*dtz;
+                        tempwx2=(tempwx2+c0*w[offset])*vvs2*dtx*dtx;
+                        tempwy2=(tempwy2+c0*w[offset])*vvs2*dtx*dtx;
+                        tempwz2=(tempwz2+c0*w[offset])*vvp2*dtz*dtz;
 
                         for(int kk=1;kk<=5;kk++)
                         {
                             for(int kkk=1;kkk<=5;kkk++)
                             {
-                                tempuxz += c[kkk-1][1+kk]*(u[(k+kkk)*xywidth+j*xwidth+(i+kk)]
-                                                   -u[(k-kkk)*xywidth+j*xwidth+(i+kk)]
-                                                   +u[(k-kkk)*xywidth+j*xwidth+(i-kk)]
-                                                   -u[(k+kkk)*xywidth+j*xwidth+(i-kk)]);
-                                tempuxy += c[kkk-1][1+kk]*(u[k*xywidth+(j+kkk)*xwidth+(i+kk)]
-                                                   -u[k*xywidth+(j-kkk)*xwidth+(i+kk)]
-                                                   +u[k*xywidth+(j-kkk)*xwidth+(i-kk)]
-                                                   -u[k*xywidth+(j+kkk)*xwidth+(i-kk)]);
+                                tempuxz += c[kkk-1][1+kk]*(u[offset + cd2[kk][kkk][0]]
+                                                   -u[offset + cd2[kk][kkk][1]]
+                                                   +u[offset + cd2[kk][kkk][2]]
+                                                   -u[offset + cd2[kk][kkk][3]]);
+                                tempuxy += c[kkk-1][1+kk]*(u[offset + cd2[kk][kkk][4]]
+                                                   -u[offset + cd2[kk][kkk][5]]
+                                                   +u[offset + cd2[kk][kkk][6]]
+                                                   -u[offset + cd2[kk][kkk][7]]);
 
-                                tempvyz += c[kkk-1][1+kk]*(v[(k+kkk)*xywidth+(j+kk)*xwidth+i]
-                                                   -v[(k-kkk)*xywidth+(j+kk)*xwidth+i]
-                                                   +v[(k-kkk)*xywidth+(j-kk)*xwidth+i]
-                                                   -v[(k+kkk)*xywidth+(j-kk)*xwidth+i]);
-                                tempvxy += c[kkk-1][1+kk]*(v[k*xywidth+(j+kkk)*xwidth+(i+kk)]
-                                                   -v[k*xywidth+(j-kkk)*xwidth+(i+kk)]
-                                                   +v[k*xywidth+(j-kkk)*xwidth+(i-kk)]
-                                                   -v[k*xywidth+(j+kkk)*xwidth+(i-kk)]);
+                                tempvyz += c[kkk-1][1+kk]*(v[offset + cd2[kk][kkk][8]]
+                                                   -v[offset + cd2[kk][kkk][9]]
+                                                   +v[offset + cd2[kk][kkk][10]]
+                                                   -v[offset + cd2[kk][kkk][11]]);
+                                tempvxy += c[kkk-1][1+kk]*(v[offset + cd2[kk][kkk][4]]
+                                                   -v[offset + cd2[kk][kkk][5]]
+                                                   +v[offset + cd2[kk][kkk][6]]
+                                                   -v[offset + cd2[kk][kkk][7]]);
 
-                                tempwyz += c[kkk-1][1+kk]*(w[(k+kkk)*xywidth+(j+kk)*xwidth+i]
-                                                   -w[(k-kkk)*xywidth+(j+kk)*xwidth+i]
-                                                   +w[(k-kkk)*xywidth+(j-kk)*xwidth+i]
-                                                   -w[(k+kkk)*xywidth+(j-kk)*xwidth+i]);
-                                tempwxz += c[kkk-1][1+kk]*(w[(k+kkk)*xywidth+j*xwidth+(i+kk)]
-                                                   -w[(k-kkk)*xywidth+j*xwidth+(i+kk)]
-                                                   +w[(k-kkk)*xywidth+j*xwidth+(i-kk)]
-                                                   -w[(k+kkk)*xywidth+j*xwidth+(i-kk)]);
+                                tempwyz += c[kkk-1][1+kk]*(w[offset + cd2[kk][kkk][8]]
+                                                   -w[offset + cd2[kk][kkk][9]]
+                                                   +w[offset + cd2[kk][kkk][10]]
+                                                   -w[offset + cd2[kk][kkk][11]]);
+                                tempwxz += c[kkk-1][1+kk]*(w[offset + cd2[kk][kkk][0]]
+                                                   -w[offset + cd2[kk][kkk][1]]
+                                                   +w[offset + cd2[kk][kkk][2]]
+                                                   -w[offset + cd2[kk][kkk][3]]);
                                    
                             } // for(kkk=1;kkk<=5;kkk++) end
                         } //for(kk=1;kk<=5;kk++) end
                          
-                        up[k*xywidth+j*xwidth+i]=2.*up1[k*xywidth+j*xwidth+i]-up2[k*xywidth+j*xwidth+i]
+                        up[offset]=2.*up1[offset]-up2[offset]
                                           +tempux2+tempwxz*vvp2*dtz*dtx
                                           +tempvxy*vvp2*dtz*dtx;
  
-                        vp[k*xywidth+j*xwidth+i]=2.*vp1[k*xywidth+j*xwidth+i]-vp2[k*xywidth+j*xwidth+i]
+                        vp[offset]=2.*vp1[offset]-vp2[offset]
                                           +tempvy2+tempuxy*vvp2*dtz*dtx
                                           +tempwyz*vvp2*dtz*dtx;
-                        wp[k*xywidth+j*xwidth+i]=2.*wp1[k*xywidth+j*xwidth+i]-wp2[k*xywidth+j*xwidth+i]
+                        wp[offset]=2.*wp1[offset]-wp2[offset]
                                           +tempwz2+tempuxz*vvp2*dtz*dtx
                                           +tempvyz*vvp2*dtz*dtx
-                                          +((i + left_max - 10 == ncx_shot - 1 && j + front_max - 10 == ncy_shot - 1 && k + top_max - 10 == ncz_shot - 1) ? wave[l-1] : 0);
-                        us[k*xywidth+j*xwidth+i]=2.*us1[k*xywidth+j*xwidth+i]-us2[k*xywidth+j*xwidth+i]+tempuy2+tempuz2
+                                          +((i + left_max - 9 == ncx_shot && j + front_max - 9 == ncy_shot && k + top_max - 9 == ncz_shot) ? wave[l-1] : 0);
+                        us[offset]=2.*us1[offset]-us2[offset]+tempuy2+tempuz2
                                           -tempvxy*vvs2*dtz*dtx-tempwxz*vvs2*dtz*dtx;
-                        vs[k*xywidth+j*xwidth+i]=2.*vs1[k*xywidth+j*xwidth+i]-vs2[k*xywidth+j*xwidth+i]+tempvx2+tempvz2
+                        vs[offset]=2.*vs1[offset]-vs2[offset]+tempvx2+tempvz2
                                           -tempuxy*vvs2*dtz*dtx-tempwyz*vvs2*dtz*dtx;
-                        ws[k*xywidth+j*xwidth+i]=2.*ws1[k*xywidth+j*xwidth+i]-ws2[k*xywidth+j*xwidth+i]+tempwx2+tempwy2
+                        ws[offset]=2.*ws1[offset]-ws2[offset]+tempwx2+tempwy2
                                           -tempuxz*vvs2*dtz*dtx-tempvyz*vvs2*dtz*dtx;
                        
                     }//for(i=nleft;i<nright;i++) end
@@ -320,22 +340,10 @@ int main(int argc, char **argv)
                 for(int j=nfront;j<nback;j++) {
                     for(int i=nleft;i<nright;i++)
                     {
-                        u[k*xywidth+j*xwidth+i]=up[k*xywidth+j*xwidth+i]+us[k*xywidth+j*xwidth+i];
-                        v[k*xywidth+j*xwidth+i]=vp[k*xywidth+j*xwidth+i]+vs[k*xywidth+j*xwidth+i];
-                        w[k*xywidth+j*xwidth+i]=wp[k*xywidth+j*xwidth+i]+ws[k*xywidth+j*xwidth+i];
-
-                        /*up2[k*xywidth+j*xwidth+i]=up1[k*xywidth+j*xwidth+i];
-                        up1[k*xywidth+j*xwidth+i]=up[k*xywidth+j*xwidth+i];
-                        us2[k*xywidth+j*xwidth+i]=us1[k*xywidth+j*xwidth+i];
-                        us1[k*xywidth+j*xwidth+i]=us[k*xywidth+j*xwidth+i];
-                        vp2[k*xywidth+j*xwidth+i]=vp1[k*xywidth+j*xwidth+i];
-                        vp1[k*xywidth+j*xwidth+i]=vp[k*xywidth+j*xwidth+i];
-                        vs2[k*xywidth+j*xwidth+i]=vs1[k*xywidth+j*xwidth+i];
-                        vs1[k*xywidth+j*xwidth+i]=vs[k*xywidth+j*xwidth+i];
-                        wp2[k*xywidth+j*xwidth+i]=wp1[k*xywidth+j*xwidth+i];
-                        wp1[k*xywidth+j*xwidth+i]=wp[k*xywidth+j*xwidth+i];
-                        ws2[k*xywidth+j*xwidth+i]=ws1[k*xywidth+j*xwidth+i];
-                        ws1[k*xywidth+j*xwidth+i]=ws[k*xywidth+j*xwidth+i];*/
+                        offset = k * xywidth + j * xwidth + i;
+                        u[offset]=up[offset]+us[offset];
+                        v[offset]=vp[offset]+vs[offset];
+                        w[offset]=wp[offset]+ws[offset];
                     }//for(i=nleft;i<nright;i++) end
                     CPROW(up2, up1, k, j);
                     CPROW(up1, up, k, j);

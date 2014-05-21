@@ -109,13 +109,14 @@ int main(int argc, char **argv)
     dr2=dtz*dtz/2.;
 
     fout=fopen(argv[2],"wb");
-
-    for(int i = 0; i < initial_count; i++)
-        initial[i] = 100.0f;
+    
 
 #pragma omp parallel for schedule(static,1) ordered num_threads(NT)
     for(ishot=1;ishot<=nshot;ishot++)
     {
+        double init_num = 100.*ishot;
+        for(int i = 0; i < initial_count; i++)
+            initial[i] = init_num;
         int nleft,nright,nfront,nback,ntop,nbottom;
         float *u, *v, *w, *up, *up1, *up2,
               *vp, *vp1, *vp2, *wp, *wp1, *wp2, 
